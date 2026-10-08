@@ -55,4 +55,9 @@ tensorboard/
 .mypy_cache/
 
 # data
-data/  
+data/ 
+outputs/ 
+
+#pics
+*.png
+*.csv
