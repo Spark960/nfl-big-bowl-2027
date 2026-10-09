@@ -105,12 +105,28 @@ def load_player_play(
     return pd.concat(chunks, ignore_index=True)
 
 
+GAME_TRACKING_DTYPES = {
+    "game_id": "int64",
+    "play_id": "int64",
+    "nfl_id": "int64",
+    "time": "object",
+    "x": "float64",
+    "y": "float64",
+    "s": "float64",
+    "a": "float64",
+    "dis": "float64",
+    "o": "float64",
+    "dir": "float64",
+    "event": "object",
+}
+
+
 def load_game_tracking(
     seasons: Iterable[int] = (2023,),
     game_ids: Optional[Iterable[int]] = None,
     play_ids: Optional[Iterable[int]] = None,
     nfl_ids: Optional[Iterable[int]] = None,
-    chunksize: int = 250_000,
+    chunksize: int = 500_000,
     data_dir: Path = DATA_DIR,
 ) -> pd.DataFrame:
     """Lazy-load game_tracking_{season}.csv files with chunked filtering to avoid OOM."""
@@ -124,14 +140,14 @@ def load_game_tracking(
         path = data_dir / f"game_tracking_{season}.csv"
         if first_path is None:
             first_path = path
-        for chunk in pd.read_csv(path, chunksize=chunksize, low_memory=False):
+        for chunk in pd.read_csv(path, chunksize=chunksize, dtype=GAME_TRACKING_DTYPES):
             mask = pd.Series(True, index=chunk.index)
+            if id_set is not None:
+                mask &= chunk["nfl_id"].isin(id_set)
             if game_set is not None:
                 mask &= chunk["game_id"].isin(game_set)
             if play_set is not None:
                 mask &= chunk["play_id"].isin(play_set)
-            if id_set is not None:
-                mask &= chunk["nfl_id"].isin(id_set)
             filtered = chunk[mask]
             if not filtered.empty:
                 chunks.append(filtered)
@@ -139,3 +155,4 @@ def load_game_tracking(
     if not chunks:
         return pd.read_csv(first_path, nrows=0) if first_path else pd.DataFrame()
     return pd.concat(chunks, ignore_index=True)
+

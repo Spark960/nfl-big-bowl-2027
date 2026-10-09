@@ -255,16 +255,16 @@ For each metric, implement in `src/combine_features.py`:
 
 ### 3A — Aggregate Play-Level Metrics
 
-- [ ] **3A.1** Load `player_play.csv` filtered to our DL `nfl_id` cohort
+- [x] **3A.1** Load `player_play.csv` filtered to our DL `nfl_id` cohort
   - **File:** `data/.../player_play.csv` → 316K rows total, filter to ~118 DL players
   - **Ref:** [04_data_dictionary_nfl.md → File 5, Section F](./04_data_dictionary_nfl.md)
 
-- [ ] **3A.2** Classify each play as **pass rush** or **run defense**:
+- [x] **3A.2** Classify each play as **pass rush** or **run defense**:
   - Pass rush: `player_get_off` is not null
   - Alternative: `blitzing` is not null, or `sack` is not null
   - Document the classification logic
 
-- [ ] **3A.3** Compute per-player aggregates (pass rush plays only):
+- [x] **3A.3** Compute per-player aggregates (pass rush plays only):
 
   | Metric | Formula | Column Source |
   |--------|---------|---------------|
@@ -276,39 +276,39 @@ For each metric, implement in `src/combine_features.py`:
   | `total_pass_rush_snaps` | count(pass rush plays) | — |
   | `total_defensive_snaps` | count(all plays for player) | — |
 
-- [ ] **3A.4** Apply minimum snap threshold — exclude players with < 50 pass rush snaps (unreliable rates)
+- [x] **3A.4** Apply minimum snap threshold — exclude players with < 50 pass rush snaps (unreliable rates)
   - Document how many players are excluded (likely 2025 draft class rookies with few snaps)
   - Note: this is a **sensitivity analysis** decision — we'll test 30, 50, 75 thresholds later
 
-- [ ] **3A.5** Merge with `player_career_successes.csv` to add:
+- [x] **3A.5** Merge with `player_career_successes.csv` to add:
   - `snap_share` = `career_defensive_snaps` / `career_games_active`
   - `start_rate` = `career_games_started` / `career_games_active`
   - `accolades` = `ap_all_pro_1st_team` + `ap_all_pro_2nd_team` + `pro_bowl_original_ballot`
   - **Ref:** [04_data_dictionary_nfl.md → File 4](./04_data_dictionary_nfl.md)
 
-- [ ] **3A.6** Save as `outputs/dl_nfl_outcomes.csv`
+- [x] **3A.6** Save as `outputs/dl_nfl_outcomes.csv`
 
 ### 3B — Game Tracking Rush Paths (for validation & visuals)
 
-- [ ] **3B.1** For each DL player, identify their **top 5 pass rush plays** (lowest `time_to_pressure` or plays with a sack)
+- [x] **3B.1** For each DL player, identify their **top 5 pass rush plays** (lowest `time_to_pressure` or plays with a sack)
   - Pull `game_id` + `play_id` combos from `player_play.csv`
 
-- [ ] **3B.2** Load those specific plays from `game_tracking_*.csv`
+- [x] **3B.2** Load those specific plays from `game_tracking_*.csv`
   - **Strategy:** Don't load entire files. Use `pandas` chunked reading or `dask` to filter by `game_id` + `play_id` + `nfl_id`
   - **Files:** `data/.../game_tracking_2023.csv` (320 MiB), `game_tracking_2024.csv` (685 MiB), `game_tracking_2025.csv` (975 MiB)
   - **Ref:** [04_data_dictionary_nfl.md → Files 7–9](./04_data_dictionary_nfl.md)
 
-- [ ] **3B.3** Extract frames between `ball_snap` and `pass_forward`/`qb_sack` events
+- [x] **3B.3** Extract frames between `ball_snap` and `pass_forward`/`qb_sack` events
   - Compute **in-game CSR** using the same algorithm from Phase 2 on rush path direction changes
   - This validates whether Combine CSR translates to game movement
 
-- [ ] **3B.4** Save extracted rush paths as `outputs/dl_game_rush_paths.pkl` (for visualization in Phase 5)
+- [x] **3B.4** Save extracted rush paths as `outputs/dl_game_rush_paths.pkl` (for visualization in Phase 5)
 
 ### Phase 3 Exit Criteria
-> ✅ Per-player NFL outcome metrics for ~80–100 DL players (post minimum-snap filter)  
+> ✅ Per-player NFL outcome metrics for ~80–100 DL players (post minimum-snap filter; 103 players with ≥ 50 pass rush snaps)  
 > ✅ Outcome distributions checked (no outlier issues, reasonable ranges)  
-> ✅ In-game CSR computed for a subset of players (for Combine→Game validation)  
-> ✅ Rush path frames saved for case study visualizations
+> ✅ In-game CSR computed for all 103 qualifying players (Combine→Game CSR r = +0.388, In-Game CSR→Pressure Rate r = +0.339)  
+> ✅ Rush path frames saved for case study visualizations (`outputs/dl_game_rush_paths.pkl`)
 
 ---
 
@@ -318,58 +318,58 @@ For each metric, implement in `src/combine_features.py`:
 
 ### 4A — Correlation & Exploration
 
-- [ ] **4A.1** Merge `dl_combine_features.csv` with `dl_nfl_outcomes.csv` on `nfl_id`
-  - This is the **master analysis DataFrame** — one row per player, all features + outcomes
+- [x] **4A.1** Merge `dl_combine_features.csv` with `dl_nfl_outcomes.csv` on `nfl_id`
+  - This is the **master analysis DataFrame** — one row per player, all features + outcomes (`outputs/dl_master_analysis.csv`, 103 players)
 
-- [ ] **4A.2** Compute full correlation matrix: all 6 tracking metrics × all NFL outcome metrics
+- [x] **4A.2** Compute full correlation matrix: all 6 tracking metrics × all NFL outcome metrics
   - Highlight strongest correlations
-  - Identify which tracking metric has the strongest individual correlation with `pressure_rate`
+  - Identify which tracking metric has the strongest individual correlation with `pressure_rate` (`FSE` $r = +0.461$, `CSR` $r = +0.338$, `TRT` $r = -0.335$, `PDR` $r = -0.294$)
 
-- [ ] **4A.3** Scatter plot matrix: CSR vs. each NFL outcome metric
+- [x] **4A.3** Scatter plot matrix: CSR vs. each NFL outcome metric
   - Add draft round as color/marker to identify if high CSR + low draft round = hidden gem
 
-- [ ] **4A.4** Compare tracking metrics vs. traditional metrics head-to-head:
+- [x] **4A.4** Compare tracking metrics vs. traditional metrics head-to-head:
   - Correlation of `CSR` with `pressure_rate` vs. correlation of `three_cone` with `pressure_rate`
   - If CSR wins → that's our headline finding
-  - If it's close → show CSR adds incremental value (partial correlation controlling for 3-cone)
+  - If it's close → show CSR adds incremental value (partial correlation controlling for 3-cone: $r_{\text{partial}} = +0.287, p = 0.0033$ for `pressure_rate`, $r_{\text{partial}} = +0.404, p = 2\times 10^{-5}$ for `quick_pressure_rate`, plus 100% coverage vs. 63.1% 3-cone opt-outs)
 
 ### 4B — The Key Regression Test
 
-- [ ] **4B.1** **Model A (Baseline):** OLS regression predicting `pressure_rate` from traditional metrics only
+- [x] **4B.1** **Model A (Baseline):** OLS regression predicting `pressure_rate` from traditional metrics only
   - Predictors: `three_cone`, `short_shuttle`, `forty`, `ngs_athleticism_score`
   - Handle missing values (some players opted out of 3-cone/shuttle) — either impute or restrict sample
   - Record: R², adjusted R², AIC, BIC, cross-validated RMSE (leave-one-out due to small N)
 
-- [ ] **4B.2** **Model B (Tracking-enhanced):** OLS regression adding tracking metrics
+- [x] **4B.2** **Model B (Tracking-enhanced):** OLS regression adding tracking metrics
   - Predictors: same as A + `CSR`, `PDR`, `TRT`, `FSE`
   - Record: R², adjusted R², AIC, BIC, cross-validated RMSE
-  - **THE KEY COMPARISON:** Does Model B significantly improve over Model A?
+  - **THE KEY COMPARISON:** Does Model B significantly improve over Model A? ($R^2 = 0.354$ vs. $0.232$, $\Delta R^2 = +0.122$, $F = 4.44, p = 0.0025$)
   - Use F-test for nested model comparison or likelihood ratio test
 
-- [ ] **4B.3** **Model C (Tracking-only):** OLS regression with only tracking metrics
+- [x] **4B.3** **Model C (Tracking-only):** OLS regression with only tracking metrics
   - Predictors: `CSR`, `PDR`, `TRT`, `FSE`, `ACS`, `DJ`
-  - If this beats Model A → strongest possible finding ("tracking alone > traditional")
+  - If this beats Model A → strongest possible finding ("tracking alone > traditional": $R^2 = 0.262 > 0.232$ for `pressure_rate`, $R^2 = 0.352 > 0.231$ for `quick_pressure_rate`)
   - If not → "tracking adds value on top of traditional" is still a strong finding
 
-- [ ] **4B.4** Repeat 4B.1–4B.3 for secondary outcomes:
+- [x] **4B.4** Repeat 4B.1–4B.3 for secondary outcomes:
   - `avg_get_off` (process metric — direct parallel to FSE)
   - `sack_rate` (high-value outcome)
   - `snap_share` (career outcome)
 
-- [ ] **4B.5** Sensitivity analyses:
+- [x] **4B.5** Sensitivity analyses:
   - Vary minimum snap threshold (30, 50, 75) — do results hold?
   - Separate by draft year (do 2023 prospects with 3 years of data show stronger signal?)
   - Check for position sub-group differences (edge vs. interior)
 
 ### 4C — Combine-to-Game Movement Validation
 
-- [ ] **4C.1** Correlate Combine CSR with in-game CSR (computed in Phase 3B.3)
-  - Scatter plot: `Combine CSR` vs `In-Game CSR`
+- [x] **4C.1** Correlate Combine CSR with in-game CSR (computed in Phase 3B.3)
+  - Scatter plot: `Combine CSR` vs `In-Game CSR` ($r = +0.388, p = 5.2\times 10^{-5}$)
   - If significantly correlated → proves the trait transfers from drill to game
   - This is the **"translation chain"** evidence the judges want
 
-- [ ] **4C.2** Test: Does Combine CSR predict in-game CSR, which then predicts pressure rate?
-  - This is a mediation analysis: Combine CSR → Game CSR → NFL outcomes
+- [x] **4C.2** Test: Does Combine CSR predict in-game CSR, which then predicts pressure rate?
+  - This is a mediation analysis: Combine CSR → Game CSR → NFL outcomes (28.0% mediated, Sobel $p = 0.033$, 95% bootstrap CI $[0.0069, 0.0714]$)
   - Even a simple two-step correlation is compelling
 
 ### Phase 4 Exit Criteria
