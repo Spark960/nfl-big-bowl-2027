@@ -157,20 +157,20 @@
 
 ### 2A — Signal Processing Utilities
 
-- [ ] **2A.1** Build `src/utils.py` — angle math helpers:
+- [x] **2A.1** Build `src/utils.py` — angle math helpers:
   - `angular_diff(a, b)` → shortest signed difference between two angles (handles 0/360 wrap)
   - `angular_rate(dir_series, dt=0.1)` → degrees/second of direction change
   - `smooth_series(series, window=3)` → rolling mean for noise reduction
   - **Ref:** [06_field_coordinate_system.md](./06_field_coordinate_system.md) — 0° = toward visitor endzone, clockwise
 
-- [ ] **2A.2** Build direction-change detection function:
+- [x] **2A.2** Build direction-change detection function:
   - Input: a single drill attempt's frames (sorted by `time`)
   - Compute `dir_change_rate = angular_rate(dir)` per frame
   - Identify "turn frames" where `abs(dir_change_rate) > threshold` (start with 30°/s, tune later)
   - Group consecutive turn frames into "turn events"
   - Return: list of turn events with start_frame, end_frame, total_angle_change
 
-- [ ] **2A.3** Validate on 5–10 known drill attempts (from Phase 1 EDA):
+- [x] **2A.3** Validate on 5–10 known drill attempts (from Phase 1 EDA):
   - Plot trajectory with detected turns highlighted
   - Confirm turns align with visual direction changes
   - Tune threshold if needed
@@ -179,23 +179,23 @@
 
 For each metric, implement in `src/combine_features.py`:
 
-- [ ] **2B.1** **Cornering Speed Retention (CSR)** — *headline metric*
+- [x] **2B.1** **Cornering Speed Retention (CSR)** — *headline metric*
   - For each detected turn event:
-    - `entry_speed` = mean `s` in 3 frames before the turn
+    - `entry_speed` = mean `s` in 3 frames before the turn (with pass-rush approach floor `4.8 yd/s`)
     - `min_speed` = min `s` during the turn
     - `csr_turn = min_speed / entry_speed`
   - Player CSR = median across all turns across all drill attempts
   - **Source data:** `combine_tracking.csv` → `s`, `dir` columns
   - **Drills:** `THREE_CONE_DRILL`, `SHORT_SHUTTLE`, and relevant SKILL_DRILLS_DL names (those with turns, identified in Phase 1)
 
-- [ ] **2B.2** **Peak Deceleration Rate (PDR)**
+- [x] **2B.2** **Peak Deceleration Rate (PDR)**
   - For each turn event:
     - Compute frame-to-frame speed change: `Δs = s[t] - s[t-1]`
     - PDR_turn = `min(Δs)` (most negative = hardest braking)
   - Player PDR = median across all turns
   - **Source data:** `combine_tracking.csv` → `s` column
 
-- [ ] **2B.3** **Turn Recovery Time (TRT)**
+- [x] **2B.3** **Turn Recovery Time (TRT)**
   - For each turn event:
     - Find the frame at `min(s)` during the turn
     - Count frames until `s` returns to `0.9 * entry_speed`
@@ -203,23 +203,23 @@ For each metric, implement in `src/combine_features.py`:
   - Player TRT = median across all turns
   - **Source data:** `combine_tracking.csv` → `s` column
 
-- [ ] **2B.4** **First-Step Explosion (FSE)**
+- [x] **2B.4** **First-Step Explosion (FSE)**
   - For each drill attempt:
-    - Take frames 1–5 (first 0.5 seconds)
+    - Take frames 1–5 (first 0.5 seconds from movement onset)
     - FSE_attempt = `max(a)` in those frames
   - Player FSE = median across all attempts (across all DL drills)
   - **Source data:** `combine_tracking.csv` → `a` column
   - **Drills:** All SKILL_DRILLS_DL drills + FORTY_YARD_DASH
 
-- [ ] **2B.5** **Acceleration Curve Shape (ACS)**
-  - From FORTY_YARD_DASH attempts only:
+- [x] **2B.5** **Acceleration Curve Shape (ACS)**
+  - From FORTY_YARD_DASH attempts (with fallback to sprint/skill drills for 40 opt-outs):
     - `early_accel` = mean `a` in frames 1–10 (first 1.0 seconds)
     - `late_accel` = mean `a` in frames 11–20 (1.0–2.0 seconds)
     - ACS = `early_accel / late_accel` (higher = more front-loaded explosion)
   - Player ACS = median across attempts
   - **Source data:** `combine_tracking.csv` → `a` column, filtered to `drill_type == 'FORTY_YARD_DASH'`
 
-- [ ] **2B.6** **Directional Jerk (DJ)** — movement smoothness
+- [x] **2B.6** **Directional Jerk (DJ)** — movement smoothness
   - For each turn event:
     - Compute second derivative of `dir` (rate of change of direction-change-rate)
     - DJ_turn = std deviation of the second derivative (lower = smoother)
@@ -228,18 +228,18 @@ For each metric, implement in `src/combine_features.py`:
 
 ### 2C — Assemble & Validate Combine Features
 
-- [ ] **2C.1** Compute all 6 metrics for every DL player → output a DataFrame: one row per player, columns = `[nfl_id, CSR, PDR, TRT, FSE, ACS, DJ]`
+- [x] **2C.1** Compute all 6 metrics for every DL player → output a DataFrame: one row per player, columns = `[nfl_id, CSR, PDR, TRT, FSE, ACS, DJ]`
 
-- [ ] **2C.2** Quality checks:
+- [x] **2C.2** Quality checks:
   - No infinite / NaN values (handle edge cases: players with zero turns detected)
   - Distributions look reasonable (histogram each metric)
   - Correlation matrix between the 6 tracking metrics — are they measuring different things?
   - Correlation of tracking metrics with traditional metrics (3-cone, shuttle, 40) — they should correlate but NOT be redundant
 
-- [ ] **2C.3** Merge with traditional Combine metrics (from `combine_results.csv`) to create a full Combine feature matrix
+- [x] **2C.3** Merge with traditional Combine metrics (from `combine_results.csv`) to create a full Combine feature matrix
   - Columns: `nfl_id`, `forty`, `ten_yd_split`, `three_cone`, `short_shuttle`, `vertical`, `broad_jump`, `ngs_athleticism_score`, `CSR`, `PDR`, `TRT`, `FSE`, `ACS`, `DJ`
 
-- [ ] **2C.4** Save as `outputs/dl_combine_features.csv`
+- [x] **2C.4** Save as `outputs/dl_combine_features.csv`
 
 ### Phase 2 Exit Criteria
 > ✅ 6 tracking-derived metrics computed for ~114 DL players  
